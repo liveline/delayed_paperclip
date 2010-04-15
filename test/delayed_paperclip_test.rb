@@ -81,6 +81,21 @@ class DelayedPaperclipTest < Test::Unit::TestCase
     DelayedPaperclipJob.new(@dummy.class.name, @dummy.id, :image).perform
   end
 
+  def test_after_callback_can_override_processed_attribute
+    @dummy = reset_dummy(true)
+    @dummy_class.send(:define_method, :mark_image_as_still_processing) do
+      # FIXME: currently does *not* work for:
+      #self.image_processing!
+      self.image_processing = true
+    end
+    @dummy_class.after_image_post_process :mark_image_as_still_processing
+
+    @dummy.save!
+    assert @dummy.image_processing?
+    Delayed::Job.work_off
+    assert @dummy.reload.image_processing?
+  end
+
   def test_processed_method_returns_nil_if_column_does_not_exist
     assert_equal nil, @dummy.image_processed!
   end
