@@ -24,20 +24,20 @@ config = YAML::load(IO.read(File.dirname(__FILE__) + '/database.yml'))
 ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + "/debug.log")
 ActiveRecord::Base.establish_connection(config['test'])
 
-def reset_dummy(with_processed = false)
+def reset_dummy(with_processed = false, conditions = {})
   build_dummy_table(with_processed)
 
-  reset_class "Dummy"
+  reset_class "Dummy", true, conditions
 
   @dummy = Dummy.new(:image => File.open("#{RAILS_ROOT}/test/fixtures/12k.png"))
 end
 
-def reset_class class_name, include_process = true
+def reset_class class_name, include_process = true, conditions = {}
   Object.send(:remove_const, class_name) rescue nil
   klass = Object.const_set(class_name, Class.new(ActiveRecord::Base))
   klass.class_eval do
     has_attached_file     :image
-    process_in_background :image if include_process
+    process_in_background :image, conditions if include_process
   end
   @dummy_class = klass
 end

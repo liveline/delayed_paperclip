@@ -5,7 +5,7 @@ module Delayed
     end
 
     module ClassMethods
-      def process_in_background(name)
+      def process_in_background(name, conditions = {})
         include InstanceMethods
 
         define_method "#{name}_changed?" do
@@ -45,8 +45,8 @@ module Delayed
 
         self.send("before_#{name}_post_process", :"halt_processing_for_#{name}")
 
-        before_save :"#{name}_processing!"
-        after_save  :"enqueue_job_for_#{name}"
+        before_save :"#{name}_processing!", conditions
+        after_save  :"enqueue_job_for_#{name}", conditions
       end
     end
 

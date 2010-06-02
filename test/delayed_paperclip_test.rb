@@ -109,6 +109,46 @@ class DelayedPaperclipTest < Test::Unit::TestCase
     assert @dummy.reload.image_processing?
   end
 
+  def test_processing_true_when_new_image_added_if_conditions_met
+    @dummy = reset_dummy(true, :if => Proc.new { |dummy| true })
+
+    assert !@dummy.image_processing?
+    assert @dummy.new_record?
+    @dummy.save!
+    assert @dummy.reload.image_processing?
+  end
+
+  def test_processing_false_when_new_image_added_if_conditions_not_met
+    @dummy = reset_dummy(true, :if => Proc.new { |dummy| false })
+
+    assert !@dummy.image_processing?
+    assert @dummy.new_record?
+    @dummy.save!
+    assert !@dummy.reload.image_processing?
+  end
+
+  def test_enqueue_job_when_new_image_added_if_conditions_met
+    @dummy = reset_dummy(true, :if => Proc.new { |dummy| true })
+
+    original_job_count = Delayed::Job.count
+
+    assert @dummy.new_record?
+    @dummy.save!
+
+    assert_equal original_job_count + 1, Delayed::Job.count
+  end
+
+  def test_does_not_enqueue_job_when_new_image_added_if_conditions_not_met
+    @dummy = reset_dummy(true, :if => Proc.new { |dummy| false })
+
+    original_job_count = Delayed::Job.count
+
+    assert @dummy.new_record?
+    @dummy.save!
+
+    assert_equal original_job_count, Delayed::Job.count
+  end
+
   def test_processed_true_when_delayed_jobs_completed
     @dummy = reset_dummy(true)    
     @dummy.save!
